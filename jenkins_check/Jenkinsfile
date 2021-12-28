@@ -1,0 +1,58 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent {
+    label { label 'example-label' }
+  }
+  environment {
+      WORKSPACE = '/usr/share/jenkins/workspace'
+      RUN = 'python3.7'
+      PATH_SCRIPT = 'pipeline/jenkins_check'
+      SCRIPT = 'jenkins_check.py'
+      SLAVE1 = 'slave1'
+      SLAVE2 = 'slave2'
+  }
+  stages {
+    stage ('Clone repository') {
+        steps {
+            checkout([$class: 'GitSCM', branches: [[name: '*/$git_branch']],
+            doGenerateSubmoduleConfigurations: false, extensions: [],
+            submoduleCfg: [], userRemoteConfigs:
+            [[credentialsId: 'user-connect-git',
+            url: 'git@github.com:LinarNadyrov/pipeline.git']]])
+        }
+    }
+    stage ('Jenkins Check') {
+        steps {
+            withCredentials([string(credentialsId: 'LDAP_USER', variable: 'ldap_user_env'), string(credentialsId: 'LDAP_PASSWORD', variable: 'ldap_password_env')]) 
+            {
+                sh 'pip3.7 install python-jenkins'
+                sh '$RUN $WORKSPACE/$JOB_NAME/$PATH_SCRIPT/$SCRIPT --ldap_user=$ldap_user_env --ldap_password=$ldap_password_env --jenkinslist=$jenkinslist'
+            }
+        }
+    }
+    stage ('Available space on Ceph Storage') {
+        agent { label 'master-jenkins' }
+        steps {
+            sh '''#!/bin/bash 
+                echo "Available space on Ceph Storage:"
+                df -hT -x xfs -x devtmpfs -x tmpfs -x overlay
+                '''
+        }
+    }
+    stage ('Checking disk space on Jenkins Slave') {
+        steps {
+            sshagent(credentials: ['user-slave-jenkins'])
+            {
+                sh '''#!/bin/bash 
+                    echo "Disk space check in server $SLAVE1:"
+                    ssh -o StrictHostKeyChecking=no -l user $SLAVE1 df -hT -x devtmpfs -x tmpfs
+
+                    echo "Disk space check in server $SLAVE2:"
+                    ssh -o StrictHostKeyChecking=no -l user $SLAVE2 df -hT -x devtmpfs -x tmpfs
+                    '''
+            }
+        }
+    }
+  }
+}
