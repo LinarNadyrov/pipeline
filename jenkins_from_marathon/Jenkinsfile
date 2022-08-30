@@ -1,0 +1,45 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent {
+    label { label 'name-label-python' }
+  }
+  environment {
+      WORKSPACE = '/usr/share/jenkins/workspace'
+      PATH_JENKINS_PROFILE = 'files/jenkins_profile'
+      PATH_SCRIPT = 'pipeline/jenkins_from_marathon'
+      RUN_PYTHON = 'python3.7'
+      RUN_PIP = 'pip3.7'
+      SCRIPT = 'pipeline_jenkins_from_marathon.py'
+      FULL_PATH_JENKINS_PROFILE = "$WORKSPACE/$JOB_NAME/$PATH_JENKINS_PROFILE"
+  }
+  stages {
+    stage ('Adding a repository from binary') {
+        steps {
+            sh '''#!/bin/bash
+                echo -e "[distutils]\nindex-servers = local\n[local]\nrepository: https://repositories.address.com/pipy-virtual" > ~/.pypirc
+                '''
+            sh 'mkdir ~/.pip'
+            sh '''#!/bin/bash
+                echo -e "[global]\nindex-url = https://repositories.address.com/pipy-virtual/simple\n[search]\nindex = https://repositories.address.com/pipy-virtual/simple" > ~/.pip/pip.conf
+                '''
+            }
+        }
+    stage ('Loading jq from binary') {
+        steps {
+            sh 'wget https://repositories.address.com/download/jq-1.6/jq-linux64'
+            sh 'mv ./jq-linux64 ./jq'
+            sh 'chmod +x ./jq'
+            }
+        }
+    stage ('Rolling jenkins') {
+        steps {
+            withCredentials([string(credentialsId: 'LDAP_USER', variable: 'ldap_user_env'), string(credentialsId: 'LDAP_PASSWORD', variable: 'ldap_password_env'), string(credentialsId: 'MARATHON_LOGIN', variable: 'marathon_login_env'), string(credentialsId: 'MARATHON_PW', variable: 'marathon_pw_env')]) 
+            {
+                sh '$RUN_PIP install requests python-jenkins numpy'
+                sh '$RUN_PYTHON $WORKSPACE/$JOB_NAME/$PATH_SCRIPT/$SCRIPT --ldap_user=$ldap_user_env --ldap_password=$ldap_password_env --marathon_login=$marathon_login_env --marathon_pw=$marathon_pw_env'
+            }
+        }
+    }
+  }
+}
