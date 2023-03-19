@@ -12,17 +12,17 @@
 python3.7 -m venv jenkins_from_marathon
 source jenkins_from_marathon/bin/activate
 ```
-## После активации виртуальной среды, в терминале должен изменится ввод команд. Например:
+### После активации виртуальной среды, в терминале должен изменится ввод команд. Например:
 ```
 (jenkins_from_marathon):~$ pip list
 ```
-## Установка нужного модуля
+### Установка нужного модуля
 ```
 pip install python-jenkins
 pip install numpy 
 pip install requests
 ```
-## Запуск скрипта
+### Запуск скрипта
 ```
 python3 ../Users/linarnadyrov/Document/github/pipeline/local_jenkins_from_marathon.py
 ```
