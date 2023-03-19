@@ -1,0 +1,62 @@
+# -*- coding: utf-8 -*-
+#!/usr/bin/python
+
+import os
+import platform
+import requests
+import time
+
+CLIENT_ID_KEYCLOAK = '{{ client_id_keycloak }}'
+SECRET_KEYCLOAK = '{{ secret_keycloak }}'
+JENKINS_LDAP_USER = '{{ jenkins_ldap_user }}'
+JENKINS_LDAP_PW = '{{ jenkins_ldap_pw }}'
+
+ACCESS_TOKEN_FILE = 'TOKEN'
+SCRIPT_TO_ACCESS_TOKEN = 'keycloak.sh'
+TOKEN_SRV_URL = '{{ token_srv_url }}'
+
+JENKINS_URL = 'http'
+JENKINS_DOMAIN = '{{ jenkins_domain }}'
+JENKINS_SAFE_RESTART_API = 'safeRestart'
+
+PATH = '/opt/'
+
+os.environ["AUTHORIZATION_CODE_LOGIN_PASSWORD"] = JENKINS_LDAP_PW
+TIMEOUT = 30
+
+JENKINS_RUNNING_LIST = ['jenkins_name_1','jenkins_name_2']
+
+## Подключаемся к keycloak для получения ACCESS TOKEN
+cmd_keycloak = 'bash ' + PATH + SCRIPT_TO_ACCESS_TOKEN + ' -a ' + TOKEN_SRV_URL + ' -r users -c ' + CLIENT_ID_KEYCLOAK + ' -l ' + JENKINS_URL + '://' + JENKINS_DOMAIN + '/' + ' -u ' + JENKINS_LDAP_USER + ' -s ' + SECRET_KEYCLOAK + " > " + PATH + ACCESS_TOKEN_FILE
+shellcmd_keycloak = os.popen(cmd_keycloak) 
+shellcmd_keycloak.close()
+
+## Функция, открываем файл и считываем его содержимое в список
+def token_to_list(NAME_FILE, NAME_LIST):
+    with open(NAME_FILE, 'r', encoding='utf-8') as filehandle:
+        for line in filehandle:
+            NAME_LIST.append(line)
+
+## Считываем TOKEN в list
+TOKEN_LIST = []
+token_to_list(PATH + ACCESS_TOKEN_FILE,TOKEN_LIST)
+
+headers = {
+    'Authorization': 'Bearer ' + TOKEN_LIST[0]}
+
+for data in JENKINS_RUNNING_LIST:
+    JENKINS_NAME = data
+    JENKINS_ADDR = JENKINS_URL + '://' + JENKINS_DOMAIN + '/' + JENKINS_NAME + '/'
+    JENKINS_REQUEST = requests.get(JENKINS_ADDR, headers=headers)
+    if str(JENKINS_REQUEST.status_code) == str(200):
+        response = requests.post(JENKINS_ADDR + JENKINS_SAFE_RESTART_API, headers=headers)
+    elif str(JENKINS_REQUEST.status_code) == str(504):
+        RETRIES = 1 ## Начало отчета 
+        RETRIES_CHECK = 6 ## Кол-во попыток 6-1=5 раз
+        while RETRIES < RETRIES_CHECK:
+            print('ТУТ')
+            time.sleep(TIMEOUT)
+            RETRIES += 1
+            if str(JENKINS_REQUEST.status_code) == str(200):
+                response = requests.post(JENKINS_ADDR + JENKINS_SAFE_RESTART_API, headers=headers)
+                RETRIES = RETRIES_CHECK
