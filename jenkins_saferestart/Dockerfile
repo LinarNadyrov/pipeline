@@ -1,4 +1,4 @@
-# docker build -t infra.binary.alfabank.ru/jenkins-ssh-slave:1.3.5-python-jenkins-rotator .
+# docker build -t python:3.7/jenkins-ssh-slave:1.3.5-python-jenkins-rotator .
 FROM python:3.7/jenkins-ssh-slave:1.3.5-python
 RUN apt-get update \
     && apt-get install -y jq wget zip \

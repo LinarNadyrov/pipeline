@@ -14,10 +14,10 @@ KEYCLOAK_REALM = ''  #Realm у прода users у теста USERS
 
 ACCESS_TOKEN_FILE = 'TOKEN'
 SCRIPT_TO_ACCESS_TOKEN = 'scripts/jenkins_saferestart/keycloak.sh'
-TOKEN_SRV_URL = '' # пример 'https://idp-test.alfaintra.net/auth'
+TOKEN_SRV_URL = '' # пример 'https://keycloak.com/auth'
 
 JENKINS_URL = 'http'
-JENKINS_DOMAIN = ""  # пример 'dojenkins'
+JENKINS_DOMAIN = ""  # пример 'my_domain'
 JENKINS_SAFE_RESTART_API = 'safeRestart'
 
 
