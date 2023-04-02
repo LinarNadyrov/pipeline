@@ -1,2 +1,5 @@
-# pipeline
-CI/CD
+#### Реализованные python скрипты для pipeline. 
+
+
+
+
