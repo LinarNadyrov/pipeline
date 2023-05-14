@@ -1,0 +1,42 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent {
+    label { label 'example-label' }
+  }
+  environment {
+      WORKSPACE = '/usr/share/jenkins/workspace'
+      PATH_SCRIPT = 'pipeline/jenkins_check_job'
+      RUN_PYTHON = 'python3.7'
+      RUN_PIP = 'pip3.7'
+      SCRIPT = 'pipeline_check_job_jenkins.py'
+  }
+  stages {
+    stage ('Adding a repository from repository_hosting.com') {
+        steps {
+            sh '''#!/bin/bash
+                echo -e "[distutils]\nindex-servers = local\n[local]\nrepository: https://repository_hosting.com/pypi/pipy-virtual" > ~/.pypirc
+                '''
+            sh 'mkdir ~/.pip'
+            sh '''#!/bin/bash
+                echo -e "[global]\nindex-url = https://repository_hosting.com/pipy-virtual/simple\n[search]\nindex = https://repository_hosting.com/pypi/pipy-virtual/simple" > ~/.pip/pip.conf
+                '''
+            }
+        }
+    stage ('Loading jq from repository_hosting.com') {
+        steps {
+            sh 'wget https://repository_hosting.com/github-releases/stedolan/jq/releases/download/jq-1.6/jq-linux64'
+            sh 'mv ./jq-linux64 ./jq'
+            sh 'chmod +x ./jq'
+            }
+        }
+    stage ('Checking for empty and unused jenkins') {
+        steps {
+            withCredentials([string(credentialsId: 'JENKINS_KEYCLOAK_USER', variable: 'keycloak_user_env'), string(credentialsId: 'JENKINS_KEYCLOAK_PW', variable: 'keycloak_password_env'), string(credentialsId: 'CLIENT_ID_KEYCLOAK', variable: 'client_id_keycloak_env'), string(credentialsId: 'SECRET_KEYCLOAK', variable: 'secret_keycloak_env'), string(credentialsId: 'TOKEN_SRV_URL', variable: 'token_srv_url_env'), string(credentialsId: 'KEYCLOAK_REALM', variable: 'keycloak_realm_env'), string(credentialsId: 'MARATHON_LOGIN', variable: 'marathon_login_env'), string(credentialsId: 'MARATHON_PW', variable: 'marathon_pw_env') ]) 
+            {
+                sh 'PATH="./:$PATH" $RUN_PYTHON $WORKSPACE/$JOB_NAME/$PATH_SCRIPT/$SCRIPT --jenkins_url=$jenkins_url_env --jenkins_domain=$jenkins_domain_env --keycloak_user=$keycloak_user_env --keycloak_password=$keycloak_password_env --client_id_keycloak=$client_id_keycloak_env --secret_keycloak=$secret_keycloak_env --keycloak_realm=$keycloak_realm_env --token_srv_url=$token_srv_url_env --marathon_login=$marathon_login_env --marathon_pw=$marathon_pw_env --n_days_ago=$n_days_ago_env '
+            }
+        }
+    }
+  }
+}
